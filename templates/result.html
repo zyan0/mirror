@@ -68,41 +68,13 @@ body {
     <hr />
     
     <ul class="thumbnails">
+      {% for result in results %}
       <li class="span4">
         <a href="#" class="thumbnail">
-          <img data-src="holder.js/300x200" alt="">
+          <img src="http://127.0.0.1:5000/static/mirflickr/{{ result }}" alt="">
         </a>
       </li>
-      <li class="span4">
-        <a href="#" class="thumbnail">
-          <img data-src="holder.js/300x200" alt="">
-        </a>
-      </li>
-      <li class="span4">
-        <a href="#" class="thumbnail">
-          <img data-src="holder.js/300x200" alt="">
-        </a>
-      </li>
-      <li class="span4">
-        <a href="#" class="thumbnail">
-          <img data-src="holder.js/300x200" alt="">
-        </a>
-      </li>
-      <li class="span4">
-        <a href="#" class="thumbnail">
-          <img data-src="holder.js/300x200" alt="">
-        </a>
-      </li>
-      <li class="span4">
-        <a href="#" class="thumbnail">
-          <img data-src="holder.js/300x200" alt="">
-        </a>
-      </li>
-      <li class="span4">
-        <a href="#" class="thumbnail">
-          <img data-src="holder.js/300x200" alt="">
-        </a>
-      </li>
+      {% endfor %}
     </ul>
 
     <div id="push"></div>
