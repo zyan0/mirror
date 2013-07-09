@@ -10,7 +10,7 @@ def index():
     
 @app.route('/search', methods=['GET', 'POST'])
 def search():
-    return request.form['query']
+    return render_template('result.html')
 
 @app.route('/similar', methods=['GET', 'POST'])
 def similar():
