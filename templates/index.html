@@ -4,7 +4,10 @@
 <title>Mirror Image Search</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link href="/static/css/bootstrap.min.css" rel="stylesheet" media="screen">
+<link href="/static/css/jasny-bootstrap.min.css" rel="stylesheet" media="screen">
 <link href="/static/css/bootstrap-responsive.css" rel="stylesheet" media="screen">
+<link href="/static/css/jasny-bootstrap-responsive.min.css" rel="stylesheet" media="screen">
+<link href="/static/css/bootstrap-fileupload.min.css" rel="stylesheet" media="screen">
 <style type="text/css">
 html {
     height: 100%;
@@ -76,6 +79,24 @@ body {
         </form>
         </center>
       </div>
+      
+      <hr />
+      
+      <div class="jumbotron">
+        <center>
+            <h1>Find Similar Pictures</h1>
+            <br/>
+            <form action="/similar" method="POST" enctype="multipart/form-data">
+                <div class="fileupload fileupload-new" data-provides="fileupload">
+                  <span class="btn btn-file"><span class="fileupload-new">Select file</span><span class="fileupload-exists">Change</span><input type="file" name="image" id="image" /></span>
+                  <span class="fileupload-preview"></span>
+                  <a href="#" class="close fileupload-exists" data-dismiss="fileupload" style="float: none">×</a>
+                </div>
+                <button class="btn" type="submit">Mirror Similar</button>
+            </form>
+            </center>
+      </div>
+      
     </div>
     <div id="push"></div>
 </div>
@@ -86,7 +107,8 @@ body {
     </div>
 </div>
 
-<script src="/static/js/jquery.js"></script>
+<script src="/static/js/jquery-1.10.2.min.js"></script>
 <script src="/static/js/bootstrap.min.js"></script>
+<script src="/static/js/bootstrap-fileupload.min.js"></script>
 </body>
 </html>
