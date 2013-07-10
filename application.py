@@ -7,6 +7,10 @@ from flask import redirect
 import sqlite3
 from flask import g
 from werkzeug import secure_filename
+import nltk
+import string
+from nltk.stem.porter import PorterStemmer
+from nltk.stem import WordNetLemmatizer
 
 UPLOAD_FOLDER = 'static/media'
 ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
@@ -25,7 +29,8 @@ def search():
     c = get_db().cursor()
     results = None
     
-    queries = input_query.split()
+    queries = remove_stopwords(input_query.split())
+    print queries
     for query in queries:
         c.execute("SELECT * FROM tags WHERE content LIKE '{}%' LIMIT 100".format(query))
         tags = c.fetchall()
@@ -76,6 +81,14 @@ def teardown_request(exception):
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
+
+def remove_stopwords(val):
+    stopwords = nltk.corpus.stopwords.words('english')
+    stopwords.extend(string.punctuation)
+    stopwords = set(stopwords)
+    #porter = PorterStemmer()
+    wnl = WordNetLemmatizer()
+    return [wnl.lemmatize(x) for x in val if x not in stopwords and len(x) > 1]
 
 if __name__ == '__main__':
     app.run(debug=True)
