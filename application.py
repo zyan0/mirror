@@ -56,14 +56,18 @@ def search():
             else:
                 results = results_new
 
-    for filename in results:
-        scores[filename] = math.log(100.0 / float(db.files_count[filename]))
-        for tag in db.filenames_tags[filename]:
-            for query in queries:
-                if tag == query:
-                    scores[filename] += math.log(float(len(db.tags)) / float(db.tags_count[tag]))
-
-    results = sorted(results, key=lambda x: -scores[x])
+    if results != None:
+        for filename in results:
+            scores[filename] = math.log(100.0 / float(db.files_count[filename]))
+            for tag in db.filenames_tags[filename]:
+                for query in queries:
+                    if tag == query:
+                        scores[filename] += math.log(float(len(db.tags)) / float(db.tags_count[tag]))
+    
+        results = sorted(results, key=lambda x: -scores[x])
+    else:
+        results = []
+        
     return render_template('result.html', results = results, query = input_query, scores = scores)
 
 @app.route('/similar', methods=['GET', 'POST'])
