@@ -102,8 +102,7 @@ def match(img_location, features):
         # print filename, distance[filename]
     
     results = sorted(features.keys(), key = lambda x: distance[x])
-    return results
-    
+    return results, distance
 
 SIFT_STORE_LOCATION = 'sift.pkl'
 

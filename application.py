@@ -71,19 +71,24 @@ def search():
         
     return render_template('result.html', results = results, query = input_query, scores = scores)
 
+sift = None
+
 @app.route('/similar', methods=['GET', 'POST'])
 def similar():
+    global sift
+    
+    if sift == None:
+        sift = pickle.load(open(SIFT_STORE_LOCATION, 'rb'))
+    
     if request.method == 'POST':
         file = request.files['image']
         if file and allowed_file(file.filename.lower()):
             filename = secure_filename(file.filename.lower()).lower()
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             fileurl = app.config['UPLOAD_FOLDER'] + '/' + filename
-            
-            sift = pickle.load(open(SIFT_STORE_LOCATION, 'rb'))
-            results = match(os.path.join(app.config['UPLOAD_FOLDER'], filename), sift)
-            
-            return render_template('similar.html', results = results[1:100])
+
+            results, distances = match(os.path.join(app.config['UPLOAD_FOLDER'], filename), sift)
+            return render_template('similar.html', results = results[1:100], distances = distances)
 
 def get_db():
     if not hasattr(g, 'db'):
