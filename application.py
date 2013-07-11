@@ -15,6 +15,7 @@ from nltk.corpus import wordnet
 from database import Database
 import cPickle as pickle
 import math
+from sift import match, SIFT_STORE_LOCATION
 
 UPLOAD_FOLDER = 'static/media'
 ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
@@ -78,6 +79,11 @@ def similar():
             filename = secure_filename(file.filename.lower()).lower()
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             fileurl = app.config['UPLOAD_FOLDER'] + '/' + filename
+            
+            sift = pickle.load(open(SIFT_STORE_LOCATION, 'rb'))
+            results = match(os.path.join(app.config['UPLOAD_FOLDER'], filename), sift)
+            
+            return render_template('similar.html', results = results[1:100])
 
 def get_db():
     if not hasattr(g, 'db'):
