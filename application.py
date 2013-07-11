@@ -1,20 +1,24 @@
+# -*- coding: utf-8 -*-
 import os
 from flask import Flask
 from flask import url_for
 from flask import render_template
 from flask import request
 from flask import redirect
-import sqlite3
 from flask import g
 from werkzeug import secure_filename
 import nltk
 import string
 from nltk.stem.porter import PorterStemmer
 from nltk.stem import WordNetLemmatizer
+from nltk.corpus import wordnet
+from database import Database
+import cPickle as pickle
+import math
 
 UPLOAD_FOLDER = 'static/media'
 ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
-DATABASE = 'database.db'
+DATABASE = 'database.pkl'
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -26,31 +30,41 @@ def index():
 @app.route('/search', methods=['GET', 'POST'])
 def search():
     input_query = request.form['query']
-    c = get_db().cursor()
+    db = get_db()
     results = None
     
-    queries = remove_stopwords(input_query.split())
-    print queries
+    queries = query_preprocess(input_query.split())
+    scores = {}
+    
     for query in queries:
-        c.execute("SELECT * FROM tags WHERE content LIKE '{}%' LIMIT 100".format(query))
-        tags = c.fetchall()
+        tags = [tag for tag in db.tags if tag == query]
         result = set()
+        
         for tag in tags:
-            c.execute("SELECT pid FROM tags_images WHERE tid = {}".format(tag[0]))
-            tags_images = c.fetchall()
-            for t_i in tags_images:
-                pid = t_i[0]
-                c.execute("SELECT file_name FROM images WHERE id = {}".format(pid))
-                try:
-                    result = set.union(result, set(c.fetchone()))
-                except:
-                    pass
+            result = set.union(result, set(db.tags_filenames[tag]))
+            
         if results == None:
             results = result
+        elif len(result) == 0:
+            pass
         else:
-            results = set.intersection(results, result)
+            results_new = set.intersection(results, result)
+            if len(results_new) == 0:
+                for f in result:
+                    scores[f] = -1
+                results = set.union(results, result)
+            else:
+                results = results_new
 
-    return render_template('result.html', results = results, query = input_query)
+    for filename in results:
+        scores[filename] = math.log(100.0 / float(db.files_count[filename]))
+        for tag in db.filenames_tags[filename]:
+            for query in queries:
+                if tag == query:
+                    scores[filename] += math.log(float(len(db.tags)) / float(db.tags_count[tag]))
+
+    results = sorted(results, key=lambda x: -scores[x])
+    return render_template('result.html', results = results, query = input_query, scores = scores)
 
 @app.route('/similar', methods=['GET', 'POST'])
 def similar():
@@ -62,33 +76,19 @@ def similar():
             fileurl = app.config['UPLOAD_FOLDER'] + '/' + filename
 
 def get_db():
-    db = getattr(g, '_database', None)
-    if db is None:
-        db = g._database = connect_db()
-    return db
-
-def connect_db():
-    return sqlite3.connect(DATABASE)
-
-@app.before_request
-def before_request():
-    g.db = connect_db()
-
-@app.teardown_request
-def teardown_request(exception):
-    if hasattr(g, 'db'):
-        g.db.close()
+    if not hasattr(g, 'db'):
+        g.db = pickle.load(open(DATABASE, 'rb'))
+    return g.db
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
 
-def remove_stopwords(val):
+def query_preprocess(val):
     stopwords = nltk.corpus.stopwords.words('english')
     stopwords.extend(string.punctuation)
     stopwords = set(stopwords)
-    #porter = PorterStemmer()
-    wnl = WordNetLemmatizer()
-    return [wnl.lemmatize(x) for x in val if x not in stopwords and len(x) > 1]
+    porter = PorterStemmer()
+    return [porter.stem(x) for x in val if x not in stopwords and len(x) > 1]
 
 if __name__ == '__main__':
     app.run(debug=True)

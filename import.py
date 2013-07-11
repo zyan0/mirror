@@ -1,38 +1,47 @@
+# -*- coding: utf-8 -*-
 import sqlite3
 import os
+import cPickle as pickle
+from database import Database
+from nltk.stem.porter import PorterStemmer
+import string
 
-DATABASE = 'database.db'
+DATABASE = 'database.pkl'
+
+def is_ascii(val):
+    try:
+        val.decode('ascii')
+        return True
+    except:
+        return False
 
 def main():
-    db = sqlite3.connect(DATABASE)
-    c = db.cursor()
-
+    db = Database()
+    porter = PorterStemmer()
+    
     os.chdir('static/mirflickr')
     for file_name in os.listdir("."):
         if file_name.endswith(".jpg"):
-            print file_name
-            
-            c.execute("SELECT * FROM images WHERE file_name = '%s'" % file_name)
-            if c.fetchone() == None:
-                c.execute("INSERT INTO images (file_name) VALUES ('%s')" % file_name)
-            else:
+            if file_name in db.filenames:
                 continue
-                
-            c.execute("SELECT * FROM images WHERE file_name = '%s'" % file_name)
-            pid = c.fetchone()[0]
+
+            db.add_filename(file_name)
+            print file_name
 
             file_number = file_name.replace('.jpg', '').replace('im', '')
             f = open('meta/tags/tags{}.txt'.format(file_number))
             for tag in f:
-                c.execute("SELECT * FROM tags WHERE content = '%s'" % tag)
-                result = c.fetchone()
-                if result == None:
-                    c.execute("INSERT INTO tags (content) VALUES ('%s')" % tag)
-                c.execute("SELECT * FROM tags WHERE content = '%s'" % tag)
-                tid = c.fetchone()[0]
-                c.execute("INSERT INTO tags_images (tid, pid) VALUES (%d, %d)" % (tid, pid))
-                
-    db.commit()
+                tag = tag.strip()
+                if not is_ascii(tag):
+                    continue
+                tag = porter.stem(tag)
+                if tag not in db.tags:
+                    db.add_tag(tag)
+                db.add_relation(tag, file_name)
+
+    os.chdir('..')
+    os.chdir('..')
+    db.save(DATABASE)
 
 if __name__ == '__main__':
     main()
