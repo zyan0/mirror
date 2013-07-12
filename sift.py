@@ -5,7 +5,7 @@ import itertools
 import sys
 import os
 import cPickle as pickle
-from munkres import Munkres, print_matrix
+from munkres import Munkres
 
 def findKeyPoints(img, template, distance=200):
     detector = cv2.FeatureDetector_create("SIFT")
@@ -93,14 +93,14 @@ def match(img_location, features):
             matrix.append([])
             for j in range(10):
                 try:
-                    matrix[i].append( np.linalg.norm( array(img_features[i]) - array(features[filename][j]) )  )
+                    matrix[i].append( np.linalg.norm( array(img_features[i]) - array(fea[j]) )  )
                 except:
                     matrix[i].append( 10000 )
         indexes = m.compute(matrix)
         for row, column in indexes:
             distance[filename] += matrix[row][column]
         # print filename, distance[filename]
-    
+
     results = sorted(features.keys(), key = lambda x: distance[x])
     return results, distance
 
@@ -121,11 +121,11 @@ def extract_features():
             img = cv2.imread(file_name)
             keypoints = detector.detect(img)
             keypoints = sorted(keypoints, key=lambda x: -x.response)
-            keypoints, features = descriptor.compute(img, keypoints[0:10])
+            keypoints, features = descriptor.compute(img, keypoints[0:20])
             for fea in features:
                 sift[file_name].append(fea.tolist())
             count += 1
-            if count > 1000:
+            if count > 2000:
                 break
     
     os.chdir('..')
@@ -133,6 +133,4 @@ def extract_features():
     pickle.dump(sift, open(SIFT_STORE_LOCATION, 'wb'))
 
 if __name__ == '__main__':
-    # extract_features()
-    sift = pickle.load(open(SIFT_STORE_LOCATION, 'rb'))
-    match('static/mirflickr/im2.jpg', sift)
+    extract_features()

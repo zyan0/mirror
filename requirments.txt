@@ -1,0 +1,4 @@
+munkres
+PIL
+flask
+nltk

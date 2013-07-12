@@ -16,6 +16,8 @@ from database import Database
 import cPickle as pickle
 import math
 from sift import match, SIFT_STORE_LOCATION
+from rsift import match as match2
+from colors import match
 
 UPLOAD_FOLDER = 'static/media'
 ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
@@ -76,7 +78,7 @@ sift = None
 @app.route('/similar', methods=['GET', 'POST'])
 def similar():
     global sift
-    
+
     if sift == None:
         sift = pickle.load(open(SIFT_STORE_LOCATION, 'rb'))
     
@@ -86,9 +88,23 @@ def similar():
             filename = secure_filename(file.filename.lower()).lower()
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             fileurl = app.config['UPLOAD_FOLDER'] + '/' + filename
+            file_location = os.path.join(app.config['UPLOAD_FOLDER'], filename)
 
-            results, distances = match(os.path.join(app.config['UPLOAD_FOLDER'], filename), sift)
-            return render_template('similar.html', results = results[1:100], distances = distances)
+            # results, distances = match( file_location, sift)
+            results, distances = match2( file_location, sift )
+            
+            
+            results = results
+            ret = []
+            for result in results:
+                res = match(file_location, 'static/mirflickr/' + result)
+                if res > 0.3:
+                    ret.append(result)
+            results = ret
+
+            return render_template('similar.html', results = results[0:100], distances = distances, original = fileurl)
+    
+    return redirect(url_for('index'))
 
 def get_db():
     if not hasattr(g, 'db'):
