@@ -34,15 +34,15 @@ def reversed_extract_features():
                         sift[str(fea.tolist())] = [file_name]
             except:
                 pass
-            count += 1
-            if count > 1000:
-                break
+            # count += 1
+            # if count > 1000:
+            #     break
 
     os.chdir('..')
     os.chdir('..')
     pickle.dump(sift, open(REVERSED_SIFT_STORE_LOCATION, 'wb'))
 
-CENTER_STORE_LOCATION = 'center.pkl'
+CENTER_STORE_LOCATION = 'centers.pkl'
 
 def features_clustering():
     sift = pickle.load(open(REVERSED_SIFT_STORE_LOCATION, 'rb'))
@@ -52,16 +52,13 @@ def features_clustering():
         fea.append(ast.literal_eval(feature))
         
     fea = numpy.asarray(fea)
-    whitened = whiten(fea)
+    # whitened = whiten(fea)
     
-    print 'k-Means begin'
-    
-    codebook, distortion = kmeans(fea, 50, 10)
-    
+    print '- k-Means begin -'
+
+    codebook, distortion = kmeans(fea, 1000, 20)
+
     pickle.dump(codebook, open(CENTER_STORE_LOCATION, 'wb'))
-    print distortion
-    # print codebook
-    # print distortion
 
 def assign_features_to_centers():
     sift = pickle.load(open(REVERSED_SIFT_STORE_LOCATION, 'rb'))
@@ -74,7 +71,7 @@ def assign_features_to_centers():
     
     idx, _ = vq(fea, centroids)
     
-    centroids_tags = [0 for i in range(50)]
+    centroids_tags = [0 for i in range(1000)]
     counter = 0
     for ins in fea.tolist():
         if centroids_tags[ idx[counter] ] == 0:
@@ -133,7 +130,7 @@ def match(img_location, sift):
 
 if __name__ == '__main__':
     # reversed_extract_features()
-    # features_clustering()
+    features_clustering()
     # assign_features_to_centers()
     # sift = pickle.load(open(SIFT_STORE_LOCATION, 'rb'))
-    match('static/mirflickr/im2.jpg')
+    # match('static/mirflickr/im2.jpg')

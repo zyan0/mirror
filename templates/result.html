@@ -65,6 +65,11 @@ body {
                     <button class="btn" type="submit">Mirror Search</button>
                 </div>
             </form>
+            {% if corrected_query == None %}
+
+            {% else %}
+            <p>Search result for <a href="/search/{{ corrected_query }}">{{ corrected_query }}</a>? </p>
+            {% endif %}
     </div>
 
     <hr />
