@@ -12,35 +12,22 @@ from munkres import Munkres
 REVERSED_SIFT_STORE_LOCATION = 'rsift.pkl'
 
 def reversed_extract_features():
+    sift = pickle.load( open('sift.pkl', 'rb') )
+    
     detector = cv2.FeatureDetector_create("SIFT")
     descriptor = cv2.DescriptorExtractor_create("SIFT")
 
-    sift = {}
+    rsift = {}
 
-    os.chdir('static/mirflickr')
-    count = 0
-    for file_name in os.listdir("."):
+    for file_name in sift.keys():
         print file_name
-        if file_name.endswith(".jpg"):
-            img = cv2.imread(file_name)
-            keypoints = detector.detect(img)
-            keypoints = sorted(keypoints, key=lambda x: -x.response)
-            keypoints, features = descriptor.compute(img, keypoints[0:30])
+        for fea in sift[file_name]:
             try:
-                for fea in features:
-                    try:
-                        sift[str(fea.tolist())].append(file_name)
-                    except:
-                        sift[str(fea.tolist())] = [file_name]
+                rsift[str(fea)].append(file_name)
             except:
-                pass
-            # count += 1
-            # if count > 1000:
-            #     break
+                rsift[str(fea)] = [file_name]
 
-    os.chdir('..')
-    os.chdir('..')
-    pickle.dump(sift, open(REVERSED_SIFT_STORE_LOCATION, 'wb'))
+    pickle.dump(rsift, open(REVERSED_SIFT_STORE_LOCATION, 'wb'))
 
 CENTER_STORE_LOCATION = 'centers.pkl'
 
@@ -129,8 +116,8 @@ def match(img_location, sift):
     return results, distance
 
 if __name__ == '__main__':
-    # reversed_extract_features()
-    features_clustering()
+    reversed_extract_features()
+    # features_clustering()
     # assign_features_to_centers()
     # sift = pickle.load(open(SIFT_STORE_LOCATION, 'rb'))
     # match('static/mirflickr/im2.jpg')

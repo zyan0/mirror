@@ -109,11 +109,10 @@ SIFT_STORE_LOCATION = 'sift.pkl'
 def extract_features():
     detector = cv2.FeatureDetector_create("SIFT")
     descriptor = cv2.DescriptorExtractor_create("SIFT")
-    
+
     sift = {}
-    
+
     os.chdir('static/mirflickr')
-    count = 0
     for file_name in os.listdir("."):
         print file_name
         if file_name.endswith(".jpg"):
@@ -121,16 +120,16 @@ def extract_features():
             img = cv2.imread(file_name)
             keypoints = detector.detect(img)
             keypoints = sorted(keypoints, key=lambda x: -x.response)
-            keypoints, features = descriptor.compute(img, keypoints[0:20])
-            for fea in features:
-                sift[file_name].append(fea.tolist())
-            count += 1
-            if count > 2000:
-                break
+            keypoints, features = descriptor.compute(img, keypoints)
+            try:
+                for fea in features:
+                    sift[file_name].append(fea.tolist())
+            except:
+                pass
     
     os.chdir('..')
     os.chdir('..')
-    pickle.dump(sift, open(SIFT_STORE_LOCATION, 'wb'))
+    pickle.dump(sift, open('sift_all.plk', 'wb'))
 
 if __name__ == '__main__':
     extract_features()
