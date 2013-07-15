@@ -41,13 +41,12 @@ def main():
 
 # ./sofia-kmeans --k 10000 --init_type random --opt_type mini_batch_kmeans --mini_batch_size 10000 --iterations 100 --objective_after_init --objective_after_training --training_file /Users/yanzheng/Workspace/mirror/fea.train --model_out /Users/yanzheng/Workspace/mirror/clusters.txt
 
-
 def clustering_with_flann():
     fea = pickle.load( open(FEATURE_LIST_LOCATION, 'rb') )
 
     print 'loaded {} features.'.format( len(fea) )
 
-    k = kMeans(fea, 150000, 10)
+    k = kMeans(fea, 220000, 20)
     del fea
     k.train()
 
@@ -90,7 +89,7 @@ def assign_points():
     print 'Finish reading.'
 
     idx = kmeans.predict(fea)
-    centroids_files = [0 for i in range(150000)]
+    centroids_files = [0 for i in range(220000)]
     counter = 0
     for ins in fea:
         if centroids_files[ idx[counter] ] == 0:
@@ -132,16 +131,16 @@ def match(img_location, cluster):
     
     img = cv2.imread(img_location)
     kp1 = detector.detect(img)
-    kp1 = sorted(kp1, key=lambda x: -x.response)
-    kp1 = kp1[0:100]
+    # kp1 = sorted(kp1, key=lambda x: -x.response)
+    # kp1 = kp1[0:100]
     kp1, desc1 = descriptor.compute(img, kp1)
 
     distances = {}
     for file_name in cluster:
         img = cv2.imread( 'static/mirflickr/' + file_name)
         kp2 = detector.detect(img)
-        kp2 = sorted(kp2, key=lambda x: -x.response)
-        kp2 = kp2[0:100]
+        # kp2 = sorted(kp2, key=lambda x: -x.response)
+        # kp2 = kp2[0:100]
         kp2, desc2 = descriptor.compute(img, kp2)
         # desc2 = numpy.array(sift[file_name])
     
@@ -185,7 +184,7 @@ def _match(desc1, desc2, kp1, kp2):
     matcher = cv2.FlannBasedMatcher(flann_params, {})
     raw_matches = matcher.knnMatch( numpy.asarray(desc1, numpy.float32), trainDescriptors = numpy.asarray(desc2, numpy.float32), k = 2)
     p1, p2, kp_pairs = filter_matches(kp1, kp2, raw_matches)
-    return len(p1)
+    return float(len(p1)) / (float(len(kp2)) + float(len(kp1)))
 
 def filter_matches(kp1, kp2, matches, ratio = 0.9):
     mkp1, mkp2 = [], []
@@ -209,17 +208,15 @@ def init():
     centroids_files = pickle.load( open(CENTROIDS_FILES_LOCATION, 'rb') )
     centroids = pickle.load( open('centroids.pkl', 'rb') )
     flann = pyflann.FLANN()
-    params = flann.build_index( numpy.array(centroids, dtype=numpy.float64), algorithm="autotuned", target_precision=0.9, log_level = "info")
+    params = flann.build_index( numpy.array(centroids, dtype=numpy.float64), algorithm="autotuned", target_precision=0.8, log_level = "info")
     # flann = pickle.load( open('flann.pkl', 'rb') )
     # params = pickle.load( open('params.pkl', 'rb') )
     # sift = pickle.load( open('sift_100.pkl', 'rb') )
     print 'init in images_cluster done.'
 
 if __name__ == '__main__':
+    clustering_with_flann()
+    save_centroids()
+    assign_points()
     # create_feature_list()
-    # clustering_with_flann()
     # main()
-    # assign_points()
-    # save_centroids()
-    pass
-

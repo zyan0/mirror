@@ -77,7 +77,14 @@ def similar():
 
             results = find_cluster(file_location)
             print len(results)
-            
+
+            # ret = []
+            # for result in results:
+            #     res = match_color(file_location, 'static/mirflickr/' + result)
+            #     if res > 0.5:
+            #         ret.append(result)
+            # results = ret
+
             # results_1, distances_1 = match3( file_location, results )
             results, distances = match3( file_location, results )
             
@@ -87,14 +94,6 @@ def similar():
             #     print distances_1[file_name], distances_2[file_name]
             
             #results, distances = match2( file_location, sift )
-            
-            # results = results
-            # ret = []
-            # for result in results:
-            #     res = match(file_location, 'static/mirflickr/' + result)
-            #     if res > 0.3:
-            #         ret.append(result)
-            # results = ret
 
             results = sorted(results, key = lambda x: -distances[x])
             #return render_template('similar.html', results = results[0:100], distances = distances, original = fileurl)

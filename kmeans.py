@@ -10,7 +10,6 @@ class kMeans():
         self.k = k
         self.max_iter = max_iter
         self.centers = None
-        self.labels = None
 
     def train(self):
         flann = pyflann.FLANN()
@@ -37,7 +36,6 @@ class kMeans():
 
         del self.dataset
         self.centers = centers
-        self.labels = nn
 
     def get_centers(self):
         return self.centers.tolist()
