@@ -8,6 +8,14 @@ from munkres import Munkres
 from kmeans import kMeans
 from emd import calcEMD
 from common import *
+import pyflann
+
+result = None
+centroids_files = None
+centroids = None
+flann = None
+params = None
+sift = None
 
 def main():
     fea = pickle.load( open(FEATURE_LIST_LOCATION, 'rb') )
@@ -92,21 +100,23 @@ def assign_points():
 
     pickle.dump(centroids_files, open(CENTROIDS_FILES_LOCATION, 'wb'))
 
-result = None
-centroids_files = None
-centroids = None
-
 def find_cluster(img_location):
+    global flann, params
+    
+    if flann == None:
+        init()
+    
     detector = cv2.FeatureDetector_create("SIFT")
     descriptor = cv2.DescriptorExtractor_create("SIFT")
 
     img = cv2.imread(img_location)
     keypoints = detector.detect(img)
     keypoints = sorted(keypoints, key=lambda x: -x.response)
-    keypoints, features = descriptor.compute(img, keypoints[0:10])
-    features = features.tolist()
+    keypoints, features = descriptor.compute(img, keypoints[0:5])
 
-    idx = result.predict(features)
+    idx, dummy = flann.nn_index( numpy.array(features, dtype=numpy.float64), 1, checks=params["checks"])
+
+    idx = idx.tolist()
     ret = set()
     for i in idx:
         ret = set.union(ret, set(centroids_files[i]) )
@@ -123,14 +133,17 @@ def match(img_location, cluster):
     img = cv2.imread(img_location)
     kp1 = detector.detect(img)
     kp1 = sorted(kp1, key=lambda x: -x.response)
-    kp1, desc1 = descriptor.compute(img, kp1[0:50])
-    
+    kp1 = kp1[0:100]
+    kp1, desc1 = descriptor.compute(img, kp1)
+
     distances = {}
     for file_name in cluster:
         img = cv2.imread( 'static/mirflickr/' + file_name)
         kp2 = detector.detect(img)
         kp2 = sorted(kp2, key=lambda x: -x.response)
-        kp2, desc2 = descriptor.compute(img, kp2[0:50])
+        kp2 = kp2[0:100]
+        kp2, desc2 = descriptor.compute(img, kp2)
+        # desc2 = numpy.array(sift[file_name])
     
         distances[file_name] = _match( desc1, desc2, kp1, kp2 )
     
@@ -143,7 +156,7 @@ def match(img_location, cluster):
     results = cluster
     return results, distances
 
-m = Munkres()
+# m = Munkres()
 
 # def _match(desc1, desc2):
 #     global m
@@ -167,14 +180,14 @@ m = Munkres()
 #     return distance
 
 def _match(desc1, desc2, kp1, kp2):
-    norm = cv2.NORM_L2
+    # norm = cv2.NORM_L2
     # matcher = cv2.BFMatcher(norm)
     matcher = cv2.FlannBasedMatcher(flann_params, {})
-    raw_matches = matcher.knnMatch(desc1, trainDescriptors = desc2, k = 2)
+    raw_matches = matcher.knnMatch( numpy.asarray(desc1, numpy.float32), trainDescriptors = numpy.asarray(desc2, numpy.float32), k = 2)
     p1, p2, kp_pairs = filter_matches(kp1, kp2, raw_matches)
     return len(p1)
 
-def filter_matches(kp1, kp2, matches, ratio = 0.8):
+def filter_matches(kp1, kp2, matches, ratio = 0.9):
     mkp1, mkp2 = [], []
     for m in matches:
         if len(m) == 2 and m[0].distance < m[1].distance * ratio:
@@ -191,13 +204,22 @@ def save_centroids():
     centroids = kmeans.get_centers()
     pickle.dump(centroids, open(CENTROIDS_LOCATION, 'wb') )
 
+def init():
+    global centroids_files, centroids, flann, params, sift
+    centroids_files = pickle.load( open(CENTROIDS_FILES_LOCATION, 'rb') )
+    centroids = pickle.load( open('centroids.pkl', 'rb') )
+    flann = pyflann.FLANN()
+    params = flann.build_index( numpy.array(centroids, dtype=numpy.float64), algorithm="autotuned", target_precision=0.9, log_level = "info")
+    # flann = pickle.load( open('flann.pkl', 'rb') )
+    # params = pickle.load( open('params.pkl', 'rb') )
+    # sift = pickle.load( open('sift_100.pkl', 'rb') )
+    print 'init in images_cluster done.'
+
 if __name__ == '__main__':
     # create_feature_list()
     # clustering_with_flann()
     # main()
     # assign_points()
-    save_centroids()
-else:
-    result = pickle.load( open(KMEANS_LOCATION, 'rb') )
-    centroids_files = pickle.load( open(CENTROIDS_FILES_LOCATION, 'rb') )
-    centroids = pickle.load( open('centroids.pkl', 'rb') )
+    # save_centroids()
+    pass
+
