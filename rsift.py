@@ -12,10 +12,7 @@ from munkres import Munkres
 REVERSED_SIFT_STORE_LOCATION = 'rsift.pkl'
 
 def reversed_extract_features():
-    sift = pickle.load( open('sift.pkl', 'rb') )
-    
-    detector = cv2.FeatureDetector_create("SIFT")
-    descriptor = cv2.DescriptorExtractor_create("SIFT")
+    sift = pickle.load( open('sift_100.pkl', 'rb') )
 
     rsift = {}
 
@@ -27,7 +24,7 @@ def reversed_extract_features():
             except:
                 rsift[str(fea)] = [file_name]
 
-    pickle.dump(rsift, open(REVERSED_SIFT_STORE_LOCATION, 'wb'))
+    pickle.dump(rsift, open('rsift_100.pkl', 'wb'))
 
 CENTER_STORE_LOCATION = 'centers.pkl'
 

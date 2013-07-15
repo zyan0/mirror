@@ -17,8 +17,10 @@ import cPickle as pickle
 import math
 from sift import match, SIFT_STORE_LOCATION
 from rsift import match as match2
-from colors import match
+from colors import match as match_color
 from spell import Corrector
+from images_cluster import find_cluster
+from images_cluster import match as match3
 
 UPLOAD_FOLDER = 'static/media'
 ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
@@ -62,8 +64,8 @@ sift = None
 def similar():
     global sift
 
-    if sift == None:
-        sift = pickle.load(open(SIFT_STORE_LOCATION, 'rb'))
+    # if sift == None:
+    #     sift = pickle.load(open(SIFT_STORE_LOCATION, 'rb'))
     
     if request.method == 'POST':
         file = request.files['image']
@@ -73,19 +75,30 @@ def similar():
             fileurl = app.config['UPLOAD_FOLDER'] + '/' + filename
             file_location = os.path.join(app.config['UPLOAD_FOLDER'], filename)
 
-            # results, distances = match( file_location, sift)
-            results, distances = match2( file_location, sift )
+            results = find_cluster(file_location)
+            print len(results)
             
+            # results_1, distances_1 = match3( file_location, results )
+            results, distances = match3( file_location, results )
             
-            results = results
-            ret = []
-            for result in results:
-                res = match(file_location, 'static/mirflickr/' + result)
-                if res > 0.3:
-                    ret.append(result)
-            results = ret
+            # distances = {}
+            # for file_name in results:
+            #     distances[file_name] = distances_1[file_name] + distances_2[file_name] / 500
+            #     print distances_1[file_name], distances_2[file_name]
+            
+            #results, distances = match2( file_location, sift )
+            
+            # results = results
+            # ret = []
+            # for result in results:
+            #     res = match(file_location, 'static/mirflickr/' + result)
+            #     if res > 0.3:
+            #         ret.append(result)
+            # results = ret
 
-            return render_template('similar.html', results = results[0:100], distances = distances, original = fileurl)
+            results = sorted(results, key = lambda x: -distances[x])
+            #return render_template('similar.html', results = results[0:100], distances = distances, original = fileurl)
+            return render_template('similar.html', results = results, distances = distances, original = fileurl)
     
     return redirect(url_for('index'))
 

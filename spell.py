@@ -32,6 +32,8 @@ class Corrector:
 
     def correct(self,word):
         candidates = self.known([word]) or self.known(self.edits1(word)) or self.known_edits2(word) or [word]
+        if word in Corrector.NWORDS:
+            return word
         return max(candidates, key=Corrector.NWORDS.get)
 
 if __name__ == '__main__':

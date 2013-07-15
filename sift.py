@@ -71,7 +71,7 @@ def drawKeyPoints(img, template, skp, tkp, num=-1):
         cv2.line(newimg, pt_a, pt_b, (255, 0, 0))
     return newimg
 
-def match(img_location, features):
+def match(img_location, features, cluster):
     img = cv2.imread(img_location)
 
     detector = cv2.FeatureDetector_create("SIFT")
@@ -79,29 +79,31 @@ def match(img_location, features):
     
     keypoints = detector.detect(img)
     keypoints = sorted(keypoints, key=lambda x: -x.response)
-    keypoints, img_features = descriptor.compute(img, keypoints[0:10])
+    keypoints, img_features = descriptor.compute(img, keypoints[0:5])
     img_features = img_features.tolist()
 
     m = Munkres()
 
     distance = {}
-    for filename in features.keys():
+    for filename in cluster:
         distance[filename] = 0
         fea = features[filename]
-        matrix = []
-        for i in range(10):
-            matrix.append([])
-            for j in range(10):
+        matrix = [[0 for i in range(5)] for j in range(5)]
+        for i in range(5):
+            for j in range(5):
+                if matrix[j][i] != 0:
+                    matrix[i][j] = matrix[j][i]
+                    continue
                 try:
-                    matrix[i].append( np.linalg.norm( array(img_features[i]) - array(fea[j]) )  )
+                    matrix[i][j] = np.linalg.norm( array(img_features[i]) - array(fea[j]) )
                 except:
-                    matrix[i].append( 10000 )
+                    matrix[i][j] = 10000
         indexes = m.compute(matrix)
         for row, column in indexes:
             distance[filename] += matrix[row][column]
-        # print filename, distance[filename]
 
-    results = sorted(features.keys(), key = lambda x: distance[x])
+    results = sorted(cluster, key = lambda x: distance[x])
+    # results = features.keys()
     return results, distance
 
 SIFT_STORE_LOCATION = 'sift.pkl'
@@ -120,7 +122,7 @@ def extract_features():
             img = cv2.imread(file_name)
             keypoints = detector.detect(img)
             keypoints = sorted(keypoints, key=lambda x: -x.response)
-            keypoints, features = descriptor.compute(img, keypoints)
+            keypoints, features = descriptor.compute(img, keypoints[0:100])
             try:
                 for fea in features:
                     sift[file_name].append(fea.tolist())
@@ -129,7 +131,7 @@ def extract_features():
     
     os.chdir('..')
     os.chdir('..')
-    pickle.dump(sift, open('sift_all.plk', 'wb'))
+    pickle.dump(sift, open('sift_100.pkl', 'wb'))
 
 if __name__ == '__main__':
     extract_features()

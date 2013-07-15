@@ -78,7 +78,9 @@ body {
         <a href="/static/mirflickr/{{ result }}" class="thumbnail" data-lightbox="{{ result }}">
             <img src="/static/mirflickr/{{ result }}" alt="">
         </a>
+        {% if distances is defined %}
         <p>{{ distances[result] }}</p>
+        {% endif %}
       </li>
       {% endfor %}
     </ul>
