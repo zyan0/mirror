@@ -66,11 +66,8 @@ def calcEM(hist1,hist2,h_bins,s_bins):
 
 ### MAIN ########################################################################
 def calcEMD(img1, img2):
-    #Load image 1
-    src1 = cv.LoadImage(img1)
-
-    #Load image 2
-    src2 = cv.LoadImage(img2)
+    src1 = cv.fromarray(img1)
+    src2 = cv.fromarray(img2)
 
     # Get histograms
     histSrc1 = calcHistogram(src1)

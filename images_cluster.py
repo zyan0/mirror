@@ -9,6 +9,8 @@ from kmeans import kMeans
 from emd import calcEMD
 from common import *
 import pyflann
+import math
+import operator
 
 result = None
 centroids_files = None
@@ -111,7 +113,7 @@ def find_cluster(img_location):
     img = cv2.imread(img_location)
     keypoints = detector.detect(img)
     keypoints = sorted(keypoints, key=lambda x: -x.response)
-    keypoints, features = descriptor.compute(img, keypoints[0:5])
+    keypoints, features = descriptor.compute(img, keypoints[0:10])
 
     idx, dummy = flann.nn_index( numpy.array(features, dtype=numpy.float64), 1, checks=params["checks"])
 
@@ -119,6 +121,11 @@ def find_cluster(img_location):
     ret = set()
     for i in idx:
         ret = set.union(ret, set(centroids_files[i]) )
+    
+    ret = list(ret)
+
+    if len(ret) > 100:
+        ret = random.sample(ret, 100)
 
     return list(ret)
 
@@ -129,31 +136,47 @@ def match(img_location, cluster):
     detector = cv2.FeatureDetector_create("SIFT")
     descriptor = cv2.DescriptorExtractor_create("SIFT")
     
-    img = cv2.imread(img_location)
-    kp1 = detector.detect(img)
+    img1 = cv2.imread(img_location)
+    kp1 = detector.detect(img1)
     # kp1 = sorted(kp1, key=lambda x: -x.response)
     # kp1 = kp1[0:100]
-    kp1, desc1 = descriptor.compute(img, kp1)
+    kp1, desc1 = descriptor.compute(img1, kp1)
 
     distances = {}
+    distances_emd = {}
     for file_name in cluster:
-        img = cv2.imread( 'static/mirflickr/' + file_name)
-        kp2 = detector.detect(img)
-        # kp2 = sorted(kp2, key=lambda x: -x.response)
-        # kp2 = kp2[0:100]
-        kp2, desc2 = descriptor.compute(img, kp2)
-        # desc2 = numpy.array(sift[file_name])
-    
+        # img2 = cv2.imread( 'static/mirflickr/' + file_name)
+        # kp2 = detector.detect(img2)
+        # kp2, desc2 = descriptor.compute(img2, kp2)
+
+        kp = pickle.load( open('static/mirflickr/' + file_name + '.pkl', 'rb') )
+        kp2 = []
+        for point in kp:
+            kp2.append( cv2.KeyPoint(x=point[0][0],y=point[0][1],_size=point[1], _angle=point[2], _response=point[3], _octave=point[4], _class_id=point[5]) )
+            desc2 = point[6]
+
         distances[file_name] = _match( desc1, desc2, kp1, kp2 )
-    
-    # distances = {}
-    # for file_name in cluster:
-    #     distances[file_name] = calcEMD(img_location, 'static/mirflickr/' + file_name)
-        
-    
+
+        # if distances[file_name] > 0.05:
+        #     distances_emd[file_name] = calcEMD(img1, img2)
+        # else:
+        #     distances_emd[file_name] = 100
+
+    # distances = normalise(distances, len(cluster))
+    # distances_emd = normalise(distances_emd, len(cluster))
+    # 
+    # for key in distances.keys():
+    #     distances[key] = -0.2 * distances_emd[key] + distances[key]
+
     # results = sorted(cluster, key = lambda x: distances[x])
     results = cluster
     return results, distances
+
+def normalise(d, target):
+    factor = float(target) / math.fsum(d.itervalues())
+    for k in d:
+        d[k] = d[k] * factor
+    return d
 
 # m = Munkres()
 
@@ -184,7 +207,7 @@ def _match(desc1, desc2, kp1, kp2):
     matcher = cv2.FlannBasedMatcher(flann_params, {})
     raw_matches = matcher.knnMatch( numpy.asarray(desc1, numpy.float32), trainDescriptors = numpy.asarray(desc2, numpy.float32), k = 2)
     p1, p2, kp_pairs = filter_matches(kp1, kp2, raw_matches)
-    return float(len(p1)) / (float(len(kp2)) + float(len(kp1)))
+    return float(len(p1)) / (float(len(kp2)) + float(len(kp1))) - 1 / float(len(kp2))
 
 def filter_matches(kp1, kp2, matches, ratio = 0.9):
     mkp1, mkp2 = [], []
@@ -208,7 +231,7 @@ def init():
     centroids_files = pickle.load( open(CENTROIDS_FILES_LOCATION, 'rb') )
     centroids = pickle.load( open('centroids.pkl', 'rb') )
     flann = pyflann.FLANN()
-    params = flann.build_index( numpy.array(centroids, dtype=numpy.float64), algorithm="autotuned", target_precision=0.8, log_level = "info")
+    params = flann.build_index( numpy.array(centroids, dtype=numpy.float64), algorithm="autotuned", target_precision=0.9, log_level = "info")
     # flann = pickle.load( open('flann.pkl', 'rb') )
     # params = pickle.load( open('params.pkl', 'rb') )
     # sift = pickle.load( open('sift_100.pkl', 'rb') )
