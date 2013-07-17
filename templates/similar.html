@@ -1,6 +1,6 @@
 {% extends "layout.html" %}
 
-{% block title %}{{query}} - {% endblock %}
+{% block title %}Similar Images - {% endblock %}
 
 {% block css %}
 {{ super() }}
@@ -122,12 +122,16 @@
             {% if corrected_query != None %}
                 <form action="/search" method="post" style="margin: 0;">
                     <input name="query" type="hidden" value={{ corrected_query }}>
-                    Search instead for<button type="submit" class="btn btn-link">{{ corrected_query }}</button>?
                 </form>
             {% endif %}
 
             {% if results %}
             <div id="container" class="thumbnails fluid">
+                <div class="item">
+                    <a href="{{ original }}" class="thumbnail" data-lightbox="{{ original }}">
+                        <img src="static/img/grey.gif" data-original="{{ original }}" />
+                    </a>
+                </div>
             {% for result in results %}
                 <div class="item">
                     <a href="static/mirflickr/{{ result }}" class="thumbnail" data-lightbox="static/mirflickr/{{ result }}">

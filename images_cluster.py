@@ -11,6 +11,7 @@ from common import *
 import pyflann
 import math
 import operator
+from vq import get_cosine
 
 result = None
 centroids_files = None
@@ -18,6 +19,7 @@ centroids = None
 flann = None
 params = None
 sift = None
+vq = None
 
 def main():
     fea = pickle.load( open(FEATURE_LIST_LOCATION, 'rb') )
@@ -25,11 +27,11 @@ def main():
     print 'loaded {} features.'.format( len(fea) )
 
     # assign init to 'k-means++' for better result
-    # kmeans = MiniBatchKMeans(
-    #     n_clusters = 20000, init='k-means++', max_iter = 100, batch_size = 50000,
-    #     verbose=1, compute_labels=False, random_state=None, tol=0.0,
-    #     max_no_improvement=10, init_size=None, n_init=3, reassignment_ratio=0.01
-    # )
+    kmeans = MiniBatchKMeans(
+        n_clusters = 20000, init='k-means++', max_iter = 100, batch_size = 50000,
+        verbose=1, compute_labels=False, random_state=None, tol=0.0,
+        max_no_improvement=10, init_size=None, n_init=3, reassignment_ratio=0.01
+    )
     
     # kmeans = kMeans(fea = fea, k = 10000, max_iter = 100)
     # kmeans.train()
@@ -115,19 +117,16 @@ def find_cluster(img_location):
     keypoints = sorted(keypoints, key=lambda x: -x.response)
     keypoints, features = descriptor.compute(img, keypoints[0:10])
 
-    idx, dummy = flann.nn_index( numpy.array(features, dtype=numpy.float64), 1, checks=params["checks"])
+    idx, dummy = flann.nn_index( numpy.array(features, dtype=numpy.float64), 4, checks=params["checks"])
 
     idx = idx.tolist()
-    ret = set()
+    cluster = []
     for i in idx:
-        ret = set.union(ret, set(centroids_files[i]) )
-    
-    ret = list(ret)
+        cluster.extend( centroids_files[i] )
 
-    if len(ret) > 100:
-        ret = random.sample(ret, 100)
+    cluster = list(set(cluster))
 
-    return list(ret)
+    return cluster
 
 FLANN_INDEX_KDTREE = 1
 flann_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 4)
@@ -135,91 +134,37 @@ flann_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 4)
 def match(img_location, cluster):
     detector = cv2.FeatureDetector_create("SIFT")
     descriptor = cv2.DescriptorExtractor_create("SIFT")
-    
+
     img1 = cv2.imread(img_location)
     kp1 = detector.detect(img1)
-    # kp1 = sorted(kp1, key=lambda x: -x.response)
-    # kp1 = kp1[0:100]
     kp1, desc1 = descriptor.compute(img1, kp1)
+    idx1 = flann.nn_index( numpy.array(desc1, dtype=numpy.float64), 1, checks=params["checks"])
+    vec1 = {}
+    idx1 = idx1[0].tolist()
+    for i in idx:
+        try:
+            vec1[file_name][i] += 1
+        except:
+            vec1[file_name][i] = 1
 
     distances = {}
-    distances_emd = {}
     for file_name in cluster:
-        # img2 = cv2.imread( 'static/mirflickr/' + file_name)
-        # kp2 = detector.detect(img2)
-        # kp2, desc2 = descriptor.compute(img2, kp2)
+        img2 = cv2.imread(file_name)
+        kp2 = detector.detect(img2)
+        kp2, desc2 = descriptor.compute(img2, kp2)
+        idx2 = flann.nn_index( numpy.array(desc2, dtype=numpy.float64), 1, checks=params["checks"])
+        vec2 = {}
+        idx2 = idx2[0].tolist()
+        for i in idx:
+            try:
+                vec1[file_name][i] += 1
+            except:
+                vec1[file_name][i] = 1
+        # vec2 = vq[file_name]
+        distances[file_name] = get_cosine(vec1, vec2)
 
-        kp = pickle.load( open('static/mirflickr/' + file_name + '.pkl', 'rb') )
-        kp2 = []
-        for point in kp:
-            kp2.append( cv2.KeyPoint(x=point[0][0],y=point[0][1],_size=point[1], _angle=point[2], _response=point[3], _octave=point[4], _class_id=point[5]) )
-            desc2 = point[6]
-
-        distances[file_name] = _match( desc1, desc2, kp1, kp2 )
-
-        # if distances[file_name] > 0.05:
-        #     distances_emd[file_name] = calcEMD(img1, img2)
-        # else:
-        #     distances_emd[file_name] = 100
-
-    # distances = normalise(distances, len(cluster))
-    # distances_emd = normalise(distances_emd, len(cluster))
-    # 
-    # for key in distances.keys():
-    #     distances[key] = -0.2 * distances_emd[key] + distances[key]
-
-    # results = sorted(cluster, key = lambda x: distances[x])
     results = cluster
     return results, distances
-
-def normalise(d, target):
-    factor = float(target) / math.fsum(d.itervalues())
-    for k in d:
-        d[k] = d[k] * factor
-    return d
-
-# m = Munkres()
-
-# def _match(desc1, desc2):
-#     global m
-#     distance = 0
-#     matrix = [[0 for i in range(10)] for j in range(10)]
-#     
-#     for i in range(10):
-#         for j in range(10):
-#             if matrix[j][i] != 0:
-#                 matrix[i][j] = matrix[j][i]
-#                 continue
-#             try:
-#                 matrix[i][j] = numpy.linalg.norm( desc1[i] - desc2[j] )
-#             except:
-#                 matrix[i][j] = 100000
-# 
-#     indexes = m.compute(matrix)
-#     for row, column in indexes:
-#         distance += matrix[row][column]
-# 
-#     return distance
-
-def _match(desc1, desc2, kp1, kp2):
-    # norm = cv2.NORM_L2
-    # matcher = cv2.BFMatcher(norm)
-    matcher = cv2.FlannBasedMatcher(flann_params, {})
-    raw_matches = matcher.knnMatch( numpy.asarray(desc1, numpy.float32), trainDescriptors = numpy.asarray(desc2, numpy.float32), k = 2)
-    p1, p2, kp_pairs = filter_matches(kp1, kp2, raw_matches)
-    return float(len(p1)) / (float(len(kp2)) + float(len(kp1))) - 1 / float(len(kp2))
-
-def filter_matches(kp1, kp2, matches, ratio = 0.9):
-    mkp1, mkp2 = [], []
-    for m in matches:
-        if len(m) == 2 and m[0].distance < m[1].distance * ratio:
-            m = m[0]
-            mkp1.append( kp1[m.queryIdx] )
-            mkp2.append( kp2[m.trainIdx] )
-    p1 = numpy.float32([kp.pt for kp in mkp1])
-    p2 = numpy.float32([kp.pt for kp in mkp2])
-    kp_pairs = zip(mkp1, mkp2)
-    return p1, p2, kp_pairs
 
 def save_centroids():
     kmeans = pickle.load( open(KMEANS_LOCATION, 'rb') )
@@ -227,14 +172,13 @@ def save_centroids():
     pickle.dump(centroids, open(CENTROIDS_LOCATION, 'wb') )
 
 def init():
-    global centroids_files, centroids, flann, params, sift
+    global centroids_files, centroids, flann, params, sift, vq
     centroids_files = pickle.load( open(CENTROIDS_FILES_LOCATION, 'rb') )
     centroids = pickle.load( open('centroids.pkl', 'rb') )
+    params = pickle.load( open('params.pkl', 'rb') )
     flann = pyflann.FLANN()
-    params = flann.build_index( numpy.array(centroids, dtype=numpy.float64), algorithm="autotuned", target_precision=0.9, log_level = "info")
-    # flann = pickle.load( open('flann.pkl', 'rb') )
-    # params = pickle.load( open('params.pkl', 'rb') )
-    # sift = pickle.load( open('sift_100.pkl', 'rb') )
+    flann.load_index('flann.pkl', numpy.array(centroids, dtype=numpy.float64))
+    # vq = pickle.load( open('vq.pkl', 'rb') )
     print 'init in images_cluster done.'
 
 if __name__ == '__main__':
