@@ -117,16 +117,14 @@ def find_cluster(img_location):
     keypoints = sorted(keypoints, key=lambda x: -x.response)
     keypoints, features = descriptor.compute(img, keypoints[0:10])
 
-    idx, dummy = flann.nn_index( numpy.array(features, dtype=numpy.float64), 4, checks=params["checks"])
+    idx, dummy = flann.nn_index( numpy.array(features, dtype=numpy.float64), 1, checks=params["checks"])
 
     idx = idx.tolist()
-    cluster = []
+    ret = set()
     for i in idx:
-        cluster.extend( centroids_files[i] )
-
-    cluster = list(set(cluster))
-
-    return cluster
+        ret = set.union(ret, set(centroids_files[i]) )
+    ret = list(ret)
+    return ret
 
 FLANN_INDEX_KDTREE = 1
 flann_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 4)
@@ -136,32 +134,28 @@ def match(img_location, cluster):
     descriptor = cv2.DescriptorExtractor_create("SIFT")
 
     img1 = cv2.imread(img_location)
+    if img1.shape[1] > 500:
+        newx,newy = 500, int(img1.shape[0] * (500.0 / float(img1.shape[1])))
+        img1 = cv2.resize(img1, (newx, newy))
+
     kp1 = detector.detect(img1)
     kp1, desc1 = descriptor.compute(img1, kp1)
     idx1 = flann.nn_index( numpy.array(desc1, dtype=numpy.float64), 1, checks=params["checks"])
     vec1 = {}
     idx1 = idx1[0].tolist()
-    for i in idx:
+    for i in idx1:
         try:
-            vec1[file_name][i] += 1
+            vec1[i] += 1
         except:
-            vec1[file_name][i] = 1
+            vec1[i] = 1
 
     distances = {}
     for file_name in cluster:
-        img2 = cv2.imread(file_name)
-        kp2 = detector.detect(img2)
-        kp2, desc2 = descriptor.compute(img2, kp2)
-        idx2 = flann.nn_index( numpy.array(desc2, dtype=numpy.float64), 1, checks=params["checks"])
-        vec2 = {}
-        idx2 = idx2[0].tolist()
-        for i in idx:
-            try:
-                vec1[file_name][i] += 1
-            except:
-                vec1[file_name][i] = 1
-        # vec2 = vq[file_name]
-        distances[file_name] = get_cosine(vec1, vec2)
+        try:
+            vec2 = vq[file_name]
+            distances[file_name] = get_cosine(vec1, vec2)
+        except:
+            distances[file_name] = -1
 
     results = cluster
     return results, distances
@@ -178,7 +172,7 @@ def init():
     params = pickle.load( open('params.pkl', 'rb') )
     flann = pyflann.FLANN()
     flann.load_index('flann.pkl', numpy.array(centroids, dtype=numpy.float64))
-    # vq = pickle.load( open('vq.pkl', 'rb') )
+    vq = pickle.load( open('vq.pkl', 'rb') )
     print 'init in images_cluster done.'
 
 if __name__ == '__main__':

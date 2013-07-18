@@ -10,10 +10,7 @@ vq = {}
 def main():
     global vq
 
-    try:
-        vq = pickle.load( open('vq.pkl', 'rb') )
-    except:
-        vq = {}
+    vq = pickle.load( open('vq.pkl', 'rb') )
 
     centroids = pickle.load( open('centroids.pkl', 'rb') )
     params = pickle.load( open('params.pkl', 'rb') )
@@ -47,7 +44,7 @@ def main():
                     vq[file_name][i] += 1
                 else:
                     vq[file_name][i] = 1
-        if counter % 100 == 0:
+        if counter % 1000 == 0:
             pickle.dump(vq, open('vq.pkl', 'wb'))
         counter += 1
 
@@ -69,4 +66,9 @@ def get_cosine(vec1, vec2):
        return float(numerator) / denominator
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except:
+        os.chdir('..')
+        os.chdir('..')
+        pickle.dump(vq, open('vq.pkl', 'wb'))
