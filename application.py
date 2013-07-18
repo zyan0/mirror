@@ -90,48 +90,6 @@ def query_preprocess(val):
     porter = PorterStemmer()
     return [porter.stem(x) for x in val if x not in stopwords and len(x) > 1]
 
-
-# def _query_search(input_query):
-#     db = get_db()
-#     results = None
-# 
-#     queries = query_preprocess(input_query.split())
-#     scores = {}
-# 
-#     for query in queries:
-#         tags = [tag for tag in db.tags if tag == query]
-#         result = set()
-# 
-#         for tag in tags:
-#             result = set.union(result, set(db.tags_filenames[tag]))
-# 
-#         if results == None:
-#             results = result
-#         elif len(result) == 0:
-#             pass
-#         else:
-#             results_new = set.intersection(results, result)
-#             if len(results_new) == 0:
-#                 for f in result:
-#                     scores[f] = -1
-#                 results = set.union(results, result)
-#             else:
-#                 results = results_new
-# 
-#     if results != None:
-#         for filename in results:
-#             scores[filename] = math.log(100.0 / float(db.files_count[filename]))
-#             for tag in db.filenames_tags[filename]:
-#                 for query in queries:
-#                     if tag == query:
-#                         scores[filename] += math.log(float(len(db.tags)) / float(db.tags_count[tag]))
-# 
-#         results = sorted(results, key=lambda x: -scores[x])
-#     else:
-#         results = []
-# 
-#     return results, scores
-
 def _query_search(input_query):
     db = get_db()
     results = None
@@ -157,7 +115,6 @@ def _query_search(input_query):
                         scores[f] -= 1
                     else:
                         scores[f] = -1
-                    #scores[f] = - math.log(float(len(db.filenames)) / float(db.tags_count[tag]))
                 results = set.union(results, result)
             else:
                 results = results_new
@@ -166,17 +123,13 @@ def _query_search(input_query):
         for filename in results:
             if scores.has_key(filename):
                 pass
-                #scores[filename] += math.log(100.0 / float(db.files_count[filename]))
             else:
-                #scores[filename] = math.log(100.0 / float(db.files_count[filename]))
                 scores[filename] = float(len(db.tags)) / float(len(db.filenames)) / math.log(float(db.files_count[filename]))
 
             for tag in db.filenames_tags[filename]:
                 if tag in queries:
                     tag_idf = math.log(float(len(db.filenames)) / float(db.tags_count[tag]))
-                    scores[filename] += tag_idf #* tag_idf / math.sqrt(db.files_count[filename])
-                    #scores[filename] += math.log(float(len(db.filenames)) / float(len(db.tags_filenames[tag])))
-
+                    scores[filename] += tag_idf
             constant = float(len(db.tags)) / float(len(db.filenames)) / float(db.files_count[filename])
             scores[filename] *= constant
 

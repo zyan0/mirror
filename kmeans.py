@@ -51,11 +51,3 @@ class kMeans():
         nn, dummy = flann.nn_index(testset, 1, checks=params["checks"])
 
         return nn.tolist()
-
-    # def _build_centers_dict(self, centers):
-    #     centers_dict = {}
-    #     counter = 0
-    #     for c in centers:
-    #         centers_dict[str(c)] = counter
-    #         counter += 1
-    #     return centers_dict
