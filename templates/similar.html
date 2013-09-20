@@ -40,10 +40,10 @@
 
 {% block js %}
 {{ super() }}
-<script type='text/javascript' src="static/js/holder.js"></script>
-<script type='text/javascript' src="static/js/lightbox-2.6.min.js"></script>
-<script type='text/javascript' src="static/js/jquery.lazyload.js"></script>
-<script type='text/javascript' src="static/js/jquery.masonry.min.js"></script>
+<script type='text/javascript' src="/static/js/holder.js"></script>
+<script type='text/javascript' src="/static/js/lightbox-2.6.min.js"></script>
+<script type='text/javascript' src="/static/js/jquery.lazyload.js"></script>
+<script type='text/javascript' src="/static/js/jquery.masonry.min.js"></script>
 <script type='text/javascript'>//<![CDATA[ 
     $(function(){
         var $container = $('#container');
@@ -76,66 +76,20 @@
     <div id="wrap">
         <div class="container">
             <div class="jumbotron">
-                <h2>Mirror Search</h2>
-                <div class="input-append">
-                    <form action="/search" method="post">
-                        <input class="input-xxlarge" id="query" name="query" type="text" placeholder="Mirror what you want..." value={{query}}>
-                        <!-- Button to trigger modal -->
-                        <a href="#myModal" role="button" class="btn" data-toggle="modal"><i class="icon-picture"></i></a>
-                        <button class="btn btn-primary" type="submit">Mirror it!</button>
-                    </form>
-                </div>
-
-                <!-- Modal -->
-                <center>
-                <div id="myModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-                    <form action="/similar" method="POST" enctype="multipart/form-data">
-                    <div class="modal-header">
-                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-                        <h4 id="myModalLabel">Search by image</h4>
-                    </div>
-                    <div class="modal-body">
-                        <div class="fileupload fileupload-new" data-provides="fileupload">
-                            <div class="fileupload-new thumbnail" style="width: 200px; height: 150px;">
-                                <img src="/static/img/no_image.gif" />
-                            </div>
-                            <div class="fileupload-preview fileupload-exists thumbnail" style="max-width: 200px; max-height: 150px; line-height: 20px;"></div>
-                            <div>
-                                <span class="btn btn-file">
-                                    <span class="fileupload-new">Select image</span>
-                                    <span class="fileupload-exists">Change</span>
-                                    <input type="file" name="image" id="image" />
-                                </span>
-                                <a href="#" class="btn fileupload-exists" data-dismiss="fileupload">Remove</a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
-                        <button class="btn btn-primary" type="submit">Mirror it!</button>
-                    </div>
-                    </form>
-                </div>
-                </center>
+                <h2>Image Search</h2>
             </div>
-
-            {% if corrected_query != None %}
-                <form action="/search" method="post" style="margin: 0;">
-                    <input name="query" type="hidden" value={{ corrected_query }}>
-                </form>
-            {% endif %}
 
             {% if results %}
             <div id="container" class="thumbnails fluid">
                 <div class="item">
-                    <a href="{{ original }}" class="thumbnail" data-lightbox="{{ original }}">
-                        <img src="static/img/grey.gif" data-original="{{ original }}" />
+                    <a href="/{{ original }}" class="thumbnail" data-lightbox="/{{ original }}">
+                        <img src="/static/img/grey.gif" data-original="/{{ original }}" />
                     </a>
                 </div>
             {% for result in results %}
                 <div class="item">
-                    <a href="static/mirflickr/{{ result }}" class="thumbnail" data-lightbox="static/mirflickr/{{ result }}">
-                        <img src="static/img/grey.gif" data-original="static/mirflickr/{{ result }}" />
+                    <a href="/{{ result }}" class="thumbnail" data-lightbox="/{{ result }}">
+                        <img src="/static/img/grey.gif" data-original="/{{ result }}" />
                     </a>
                     <p>{{ distances[result] }}</p>
                 </div>

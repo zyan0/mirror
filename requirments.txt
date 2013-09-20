@@ -2,3 +2,4 @@ munkres
 PIL
 flask
 nltk
+scikit-learn

@@ -7,73 +7,72 @@ from flask import request
 from flask import redirect
 from flask import g
 from werkzeug import secure_filename
-import nltk
 import string
-from nltk.stem.porter import PorterStemmer
-from nltk.stem import WordNetLemmatizer
-from nltk.corpus import wordnet
 from database import Database
 import cPickle as pickle
-import math
-from sift import match, SIFT_STORE_LOCATION
-from rsift import match as match2
-from colors import match as match_color
-from spell import Corrector
-from images_cluster import find_cluster
-from images_cluster import match as match3
+from tutuso import Tutuso
 
 UPLOAD_FOLDER = 'static/media'
-ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
-DATABASE = 'database.pkl'
+ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg', 'gif'])
+BASE_PATH = '/home/zdb/work/deep_learning/online_models/comb_model/'
+APP_PATH = '/home/yan/mirror'
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
+model = None
+
 @app.route('/')
 def index():
+    global model
+    if model == None:
+        model = Tutuso()
+
     return render_template('index.html')
 
-@app.route('/search', methods=['GET', 'POST'])
-def search():
-    query = request.form['query'].strip()
-    
-    corrected_query = _correct_query(query)
-    if corrected_query == query:
-        corrected_query = None
-    
-    results, scores = _query_search(query)
-
-    return render_template('result.html', results = results, query = query, scores = scores, corrected_query = corrected_query)
-
-
-@app.route('/search/<query>')
-def search2(query):
-    query = query.strip()
-    
-    corrected_query = _correct_query(query)
-    if corrected_query == query:
-        corrected_query = None
-
-    results, scores = _query_search(query)
-        
-    return render_template('result.html', results = results, query = query, scores = scores, corrected_query = corrected_query)
-
-@app.route('/similar', methods=['GET', 'POST'])
+@app.route('/similar', methods=['POST'])
 def similar():
-    if request.method == 'POST':
-        file = request.files['image']
-        if file and allowed_file(file.filename.lower()):
-            filename = secure_filename(file.filename.lower()).lower()
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            fileurl = app.config['UPLOAD_FOLDER'] + '/' + filename
-            file_location = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            results = find_cluster(file_location)
-            print len(results)
-            results, distances = match3( file_location, results )
-            results = sorted(results, key = lambda x: -distances[x])
-            return render_template('similar.html', results = results, distances = distances, original = fileurl)
-    
+    file = request.files['image']
+    if file and allowed_file(file.filename.lower()):
+        filename = secure_filename(file.filename.lower()).lower()
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        fileurl = app.config['UPLOAD_FOLDER'] + '/' + filename
+        file_location = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+        # codes below are based on zdb's work
+        results = _similar(file_location)
+
+        return render_template('similar.html', results = results, distances = None, original = fileurl)
+
     return redirect(url_for('index'))
+
+@app.route('/similar/<filename>', methods=['GET'])
+def similar_given_filename(filename):
+    if filename and allowed_file(filename.lower()):
+        fileurl = app.config['UPLOAD_FOLDER'] + '/' + filename
+        file_location = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+        # codes below are based on zdb's work
+        results = _similar(file_location)
+
+        return render_template('similar.html', results = results, distances = None, original = fileurl)
+
+    return redirect(url_for('index'))
+
+def _similar(file_location):
+    global model
+    if model == None:
+        model = Tutuso()
+
+    fea = model.get_feature_of_file(file_location)
+    write_feature(fea)
+    os.system('cd ' + BASE_PATH + 'code1 && ./cal_kNN && cd ' + APP_PATH)
+
+    results = []
+    for filename in open(BASE_PATH + 'code1/returned_name'):
+        results.append('static/' + filename[:-1])
+
+    return results
 
 def get_db():
     if not hasattr(g, 'db'):
@@ -83,71 +82,15 @@ def get_db():
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
 
-def query_preprocess(val):
-    stopwords = nltk.corpus.stopwords.words('english')
-    stopwords.extend(string.punctuation)
-    stopwords = set(stopwords)
-    porter = PorterStemmer()
-    return [porter.stem(x) for x in val if x not in stopwords and len(x) > 1]
-
-def _query_search(input_query):
-    db = get_db()
-    results = None
-
-    queries = query_preprocess(input_query.split())
-    scores = {}
-
-    for query in queries:
-        if not query in db.tags:
-            continue
-        tag = query
-        result = set(db.tags_filenames[tag])
-
-        if results is None:
-            results = result
-        elif len(result) == 0:
-            pass
-        else:
-            results_new = set.intersection(results, result)
-            if len(results_new) == 0:
-                for f in result:
-                    if scores.has_key(f):
-                        scores[f] -= 1
-                    else:
-                        scores[f] = -1
-                results = set.union(results, result)
-            else:
-                results = results_new
-
-    if results is not None:
-        for filename in results:
-            if scores.has_key(filename):
-                pass
-            else:
-                scores[filename] = float(len(db.tags)) / float(len(db.filenames)) / math.log(float(db.files_count[filename]))
-
-            for tag in db.filenames_tags[filename]:
-                if tag in queries:
-                    tag_idf = math.log(float(len(db.filenames)) / float(db.tags_count[tag]))
-                    scores[filename] += tag_idf
-            constant = float(len(db.tags)) / float(len(db.filenames)) / float(db.files_count[filename])
-            scores[filename] *= constant
-
-        results = sorted(results, key=lambda x: -scores[x])
-    else:
-        results = []
-
-    return results, scores
-
-def _correct_query(query):
-    if not hasattr(g, 'corrector'):
-        g.correct = Corrector()
-    c = g.correct
-    corrected_query = ''
-    for word in query.split():
-        corrected_query = corrected_query + c.correct(word) + ' '
-    corrected_query = corrected_query.strip()
-    return corrected_query
+def write_feature(fea):
+    f = open(BASE_PATH + 'query_fea/query_fea1', 'w')
+    j = list(fea)
+    for k in j:
+        f.write(str(k) + " ")
+    f.write('\n')
+    f.close()
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.debug = True
+    app.threaded = True
+    app.run(host='0.0.0.0')

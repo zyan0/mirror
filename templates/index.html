@@ -14,52 +14,37 @@
         <div class="container">
             <div class="jumbotron">
                 <center>
-                    <h1 style="font-size: 51px;">Mirror Search</h1>
+                    <h1 style="font-size: 51px;">Image Search</h1>
                     <br/>
                     <div class="input-append" style="margin-top: 50px;">
-                        <form action="/search" method="post">
-                            <input class="input-xxlarge" id="query" name="query" type="text"    placeholder="Mirror what you want...">
-                            <!-- Button to trigger modal -->
-                            <a href="#myModal" role="button" class="btn" data-toggle="modal"><i class=" icon-picture"></i></a>
-                            <button class="btn btn-primary" type="submit">Mirror it!</button>
-                        </form>
-                        <!--
-                        <input id="query" name="query" type="text" class="query">
-                        <p><button class="btn" type="submit">Search</button></p>
-                        -->
+                            <div class="row modal" tabindex="-1" role="dialog" aria- labelledby="myModalLabel">
+                                <form action="/similar" method="POST" enctype="multipart/form-data">
+                                    <div class="modal-header">
+                                        <h4 id="myModalLabel">Search by Image</h4>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="fileupload fileupload-new" data-provides="fileupload">
+                                        <div class="fileupload-new thumbnail" style="width: 200px; height:  150px;">
+                                            <img src="/static/img/no_image.gif" />
+                                        </div>
+                                        <div class="fileupload-preview fileupload-exists thumbnail" style="max- width: 200px; max-height: 150px; line-height: 20px;"></div>
+                                        <div>
+                                            <span class="btn btn-file">
+                                                <span class="fileupload-new">Select image</span>
+                                                <span class="fileupload-exists">Change</span>
+                                                <input type="file" name="image" id="image" />
+                                            </span>
+                                            <a href="#" class="btn fileupload-exists" data-dismiss="fileupload" >Remove</a>
+                                        </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</    button>
+                                        <button class="btn btn-primary" type="submit">Search!</button>
+                                    </div>
+                                </form>
+                            </div>
                     </div>
-    
-                    <!-- Modal -->
-                    <center>
-                    <div id="myModal" class="modal hide fade" tabindex="-1" role="dialog" aria- labelledby="myModalLabel" aria-hidden="true">
-                        <form action="/similar" method="POST" enctype="multipart/form-data">
-                            <div class="modal-header">
-                                <button type="button" class="close" data-dismiss="modal" aria-hidden="  true">×</button>
-                                <h4 id="myModalLabel">Search by image</h4>
-                            </div>
-                            <div class="modal-body">
-                                <div class="fileupload fileupload-new" data-provides="fileupload">
-                                <div class="fileupload-new thumbnail" style="width: 200px; height:  150px;">
-                                    <img src="/static/img/no_image.gif" />
-                                </div>
-                                <div class="fileupload-preview fileupload-exists thumbnail" style="max- width: 200px; max-height: 150px; line-height: 20px;"></div>
-                                <div>
-                                    <span class="btn btn-file">
-                                        <span class="fileupload-new">Select image</span>
-                                        <span class="fileupload-exists">Change</span>
-                                        <input type="file" name="image" id="image" />
-                                    </span>
-                                    <a href="#" class="btn fileupload-exists" data-dismiss="fileupload" >Remove</a>
-                                </div>
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</    button>
-                                <button class="btn btn-primary" type="submit">Mirror it!</button>
-                            </div>
-                        </form>
-                    </div>
-                    </center>
                 </center>
             </div>
         </div>
